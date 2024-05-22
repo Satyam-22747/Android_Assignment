@@ -16,19 +16,19 @@ import com.google.gson.JsonParser;
 
 import java.io.IOException;
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
+
+import android.os.AsyncTask;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
  public class MainActivity extends AppCompatActivity {
-
-     OkHttpClient client;
-     Gson gson;
      TextView title_Tv, description_Tv;
      ProgressBar  progressBar;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -36,47 +36,59 @@ import okhttp3.Response;
         title_Tv=findViewById(R.id.title_generated_tv);
         description_Tv=findViewById(R.id.description_tv);
         progressBar=findViewById(R.id.pgbar);
-        String url="https://run.mocky.io/v3/f4613593-a726-4908-84cf-08b5b96c4a57";
-        client = new OkHttpClient();
-        gson = new Gson();
         progressBar.setVisibility(View.VISIBLE);
-        fetchJsonData();
+
+        String url="https://run.mocky.io/v3/f4613593-a726-4908-84cf-08b5b96c4a57";
+
+        new FetchDataTask().execute(url);
     }
-     private void fetchJsonData() {
-         String url = "https://run.mocky.io/v3/f4613593-a726-4908-84cf-08b5b96c4a57";
+     private class FetchDataTask extends AsyncTask<String, Void, String> {
+         @Override
+         protected String doInBackground(String... urls) {
+             String urlString = urls[0];
+             StringBuilder result = new StringBuilder();
+             try {
+                 URL url = new URL(urlString);
+                 HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                 urlConnection.setRequestMethod("GET");
 
-         Request request = new Request.Builder()
-                 .url(url)
-                 .build();
-         client.newCall(request).enqueue(new Callback() {
-             @Override
-             public void onFailure(Call call, IOException e) {
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(urlConnection.getInputStream()));
+                 String line;
+
+                 while ((line = reader.readLine()) != null) {
+                     result.append(line);
+                 }
+
+                 reader.close();
+                 urlConnection.disconnect();
+
+             } catch (IOException e) {
                  e.printStackTrace();
-                 Toast.makeText(MainActivity.this, "Api response Fail", Toast.LENGTH_SHORT).show();
+             }
+
+             return result.toString();
+         }
+
+         @Override
+         protected void onPostExecute(String result) {
+             try {
+                 JSONObject jsonResponse = new JSONObject(result);
+                 JSONArray choicesArray = jsonResponse.getJSONArray("choices");
+                 JSONObject firstChoice = choicesArray.getJSONObject(0);
+                 JSONObject messageObject = firstChoice.getJSONObject("message");
+                 String content = messageObject.getString("content");
+
+                 JSONObject contentJson = new JSONObject(content);
+                 String title = contentJson.getString("title");
+                 String description = contentJson.getString("description");
+
+                 title_Tv.setText(title);
+                 description_Tv.setText(description);
                  progressBar.setVisibility(View.GONE);
-
+             } catch (JSONException e) {
+                 e.printStackTrace();
+                 progressBar.setVisibility(View.GONE);
              }
-             @Override
-             public void onResponse(Call call, Response response) throws IOException {
-                 if (response.isSuccessful() && response.body() != null) {
-                     String responseBody = response.body().string();
-                     ApiResponse apiResponse = gson.fromJson(responseBody, ApiResponse.class);
-
-                     String content = apiResponse.getChoices().get(0).getMessage().getContent();
-                     JsonObject contentJson = JsonParser.parseString(content).getAsJsonObject();
-                     String title = contentJson.get("title").getAsString();
-                     String description = contentJson.get("description").getAsString();
-                     runOnUiThread(() -> {
-                         title_Tv.setText(title);
-                         description_Tv.setText(description);
-                         progressBar.setVisibility(View.GONE);
-                     });
-                 }
-                 else {
-                     Toast.makeText(MainActivity.this, "Response fail", Toast.LENGTH_SHORT).show();
-                     progressBar.setVisibility(View.GONE);
-                 }
-             }
-         });
+         }
      }
 }
