@@ -1,0 +1,12 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.AndroidAssignment" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your light theme here. -->
+        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="colorPrimary">@color/my_light_primary</item>
+        <item name="colorPrimaryDark">#D32D2E</item>
+        <item name="colorAccent">@color/black</item>
+    </style>
+
+    <style name="Theme.AndroidAssignment" parent="Base.Theme.AndroidAssignment" />
+</resources>
